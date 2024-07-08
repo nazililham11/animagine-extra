@@ -19,9 +19,11 @@ Added additional features for anime image generation in Animagine's huggingface 
 # How to Use Without Extensionion Script Manager Plugins/Extensions
 If you can't install the plugin or use a mobile device. 
 Go to the Animagine page, then run this script in the address bar:
-**How to Run the Script**
+
+
+**Run the Script**
 ```js
-javascript:var s=document.createElement('script'); s.url=''; document.body.append(s)
+javascript:fetch('https://raw.githubusercontent.com/nazililham11/animagine-extra/main/animagine-extra.js').then(r=>r.text()).then(t=>{const x=document.createElement('script');x.innerText=t;document.body.append(x)})
 ```
 **Clear Saved History / Hint**
 ```js
