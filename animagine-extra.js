@@ -40,6 +40,7 @@
 
 
     const animagine = Animagine()
+    const isMobile = isMobileBrowser()
 
     animagine.onPageLoaded(() => main())
 
@@ -540,7 +541,15 @@
 
         function useHints(_hints, _limit = 100){
             if (!hints) {
-                styles`.CodeMirror-hints { z-index: 100!important; }`
+                let style = `.CodeMirror-hints { z-index: 100!important; }`
+                style += isMobile ? `
+                    .CodeMirror-hint {
+                        padding-top: 1ch;
+                        padding-bottom: 1ch;
+                        border-bottom: 1px solid black;    
+                    }
+                ` : ''
+                styles(style)
 
                 codemirror.addKeyMap({
                     'Ctrl-Space': () => showHints()
@@ -549,7 +558,7 @@
                 // https://stackoverflow.com/questions/13744176/codemirror-autocomplete-after-any-keyup
                 codemirror.on('keyup', (editor, event) => {    
                     if (editor.state.completionActive) return 
-                    if (event.key.toString().trim().length !== 1) return
+                    if (!isMobile && event.key.toString().trim().length !== 1) return
 
                     showHints()
                 })
@@ -667,5 +676,15 @@
     function hasProperty(object, key) {
         return key in object
     }
-
+    function isMobileBrowser(){
+        const phones = [
+            'phone', 'pad', 'pod', 'iPhone', 'iPod', 'ios', 'iPad', 'Android', 
+            'Mobile', 'BlackBerry', 'IEMobile', 'MQQBrowser', 'JUC', 'Fennec', 
+            'wOSBrowser', 'BrowserNG', 'WebOS', 'Symbian', 'Windows Phone', 
+        ]
+        for (const phone of phones){
+            if (navigator.userAgent.indexOf(phone) > -1) return true
+        }
+        return false
+    }
 })()
