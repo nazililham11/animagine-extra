@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Animagine Extra
 // @namespace    https://github.com/nazililham11/animagine-extra
-// @version      0.1.0
+// @version      0.1.1
 // @description  Additional features for Animagine Space
 // @author       nazililham11
 // @downloadURL  https://raw.githubusercontent.com/nazililham11/animagine-extra/main/animagine-extra.js
@@ -106,10 +106,11 @@
         historyView.itemOnClick((data) => {
             console.log('selected history', data)
             animagine.fillInputs(data)
-            editor.getCodemirror().setValue(data.prompt ?? '')
+            animagine.refreshUI()
         })
         historyView.hide()
         document.body.prepend(historyView.container)
+        document.body.style.position = 'relative'
 
         const historyBtn = animagine.createButton()
         historyBtn.innerText = 'History'
@@ -147,9 +148,12 @@
         const itemsObj = localCollection.get()
         const itemsArr = Object.keys(itemsObj).sort()
             .map(key => ({ ...itemsObj[key], date: key}))
+            
+        if (itemsArr.length > 0){
+            itemsArr.forEach(item => historyView.insert(item))
+            animagine.fillInputs(itemsArr.pop())
+        }
 
-        itemsArr.forEach(item => historyView.insert(item))
-        animagine.fillInputs(itemsArr.pop())
         animagine.refreshUI()
 
         function insertNewHistory(data){
@@ -313,11 +317,12 @@
                 position: absolute;
                 z-index: 90;
                 display: grid;
-                height: auto;
+                height: 100%;
                 min-height: 100vh;
                 width: 100%;
                 max-width: 100%;
                 grid-template-columns: repeat(1, minmax(0, 1fr));
+                grid-auto-rows: min-content;
                 gap: 2rem;
                 background-color: rgb(0 0 0 / 0.75);
                 padding: 2rem;
