@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Animagine Extra
 // @namespace    https://github.com/nazililham11/animagine-extra
-// @version      0.1.2
+// @version      0.2.0
 // @description  Additional features for Animagine Space
 // @author       nazililham11
 // @downloadURL  https://raw.githubusercontent.com/nazililham11/animagine-extra/main/animagine-extra.js
