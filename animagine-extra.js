@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Animagine Extra
 // @namespace    https://github.com/nazililham11/animagine-extra
-// @version      0.1.1
+// @version      0.1.2
 // @description  Additional features for Animagine Space
 // @author       nazililham11
 // @downloadURL  https://raw.githubusercontent.com/nazililham11/animagine-extra/main/animagine-extra.js
@@ -539,33 +539,50 @@
             })
         }
 
-        function useHints(_hints, _limit = 100){
-            if (!hints) {
-                let style = `.CodeMirror-hints { z-index: 100!important; }`
-                style += isMobile ? `
+        function useHints(newHints, newLimit = 100){
+            
+            if (hints) {            
+                hints = newHints
+                limit = newLimit
+
+                return
+            }
+
+            let style = `.CodeMirror-hints { z-index: 100!important; }`
+
+            if (isMobile){
+                style += `
                     .CodeMirror-hint {
                         padding-top: 1ch;
                         padding-bottom: 1ch;
                         border-bottom: 1px solid black;    
                     }
-                ` : ''
-                styles(style)
-
-                codemirror.addKeyMap({
-                    'Ctrl-Space': () => showHints()
+                `
+                codemirror.on('change', (editor, changes) => {
+                    const key = changes.text?.pop()
+                    if (changes.origin !== '+input') return
+                    if (editor.state.completionActive) return 
+                    if (key.toString().trim().length !== 1) return
+                        
+                    showHints()
                 })
 
+            } else {
                 // https://stackoverflow.com/questions/13744176/codemirror-autocomplete-after-any-keyup
                 codemirror.on('keyup', (editor, event) => {    
                     if (editor.state.completionActive) return 
-                    if (!isMobile && event.key.toString().trim().length !== 1) return
+                    if (event.key.toString().trim().length !== 1) return
 
                     showHints()
                 })
             }
 
-            hints = _hints
-            limit = _limit
+            codemirror.addKeyMap({
+                'Ctrl-Space': () => showHints()
+            })
+
+            styles(style)
+
         }
 
         function getCodemirror(){
