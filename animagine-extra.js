@@ -118,12 +118,23 @@
         historyBtn.onclick = () => historyView.show()
 
         const importBtn = animagine.createButton()
-        importBtn.innerText = 'Import Hint'
+        importBtn.innerText = 'Import Hint (.txt)'
         importBtn.onclick = () => {
             inputFile((text) => {
                 appendHints(txtToList(text))
                 console.log('loaded hints,', hints.length, 'length total')
             }, '.txt')
+        }
+
+        const importFirebaseBtn = animagine.createButton()
+        importFirebaseBtn.innerText = 'Import Firebase Cred (.json)'
+        importFirebaseBtn.onclick = () => {
+            inputFile((data) => {
+                const fbCred = JSON.parse(data)
+                localStorage.setItem('firebase', fbCred)
+                console.log('loaded firebase cred,', fbCred)
+                initFirebase()
+            }, '.json')
         }
 
         animagine.applyCustomUI()
@@ -179,6 +190,59 @@
             })
         })
 
+
+
+
+        let firebase
+        async function initFirebase(){
+            const firebaseCred = localStorage.getItem('firebase')
+            if (firebase || !firebaseCred) return
+
+            firebase = await Firebase(JSON.parse(firebaseCred))
+            
+            if (!firebase) return
+            
+            let onChangeRechieved = false
+            const historyCollection = firebase.initCollection('/animagine/history/', {
+                onChange: (snapshot) => {
+                    // Merge with local data
+                    for (const date in snapshot){
+                        localCollection.insert(date, snapshot[date])
+                    }
+
+                    // Re render the history view
+                    historyView.clear()
+                    let latestData
+                    for (const date of Object.keys(localCollection.get()).sort()){
+                        latestData = localCollection.get()[date]
+                        historyView.insert({ ...latestData, date })
+                    }
+                    if (latestData){
+                        console.log('latest Data', latestData)
+                        animagine.fillInputs(latestData)
+                        animagine.refreshUI()
+                    }
+                    onChangeRechieved = true
+                },
+                limit: MAX_SAVED_HISTORY,
+                onlyOnce: true,
+                onChildAdded: (data) => {
+                    if (!onChangeRechieved) return
+                    if (hasProperty(localCollection.get(), data.key)) return
+
+                    localCollection.insert(data.key, data.val())
+                    localCollection.save()
+
+                    historyView.insert({ ...data.val(), date: data.key })
+                },
+            })
+            // hijack the insertNewHistory function
+            const _insertNewHistory = insertNewHistory
+            insertNewHistory = (key, data) => {
+                historyCollection.insert(key, data)
+                _insertNewHistory(key, data)
+            }
+        }
     }
 
     function Animagine(){
@@ -281,7 +345,7 @@
         }
     }
     function LocalCollection(path, limit = 250){
-        let collection = {}
+        let collection = JSON.parse(localStorage.getItem(path) ?? '{}')
 
         function save(){
             localStorage.setItem(path, JSON.stringify(collection))
@@ -289,9 +353,9 @@
         function insert(key, data) {
             if (hasProperty(collection, key)) return
             collection[key] = data
-            limitCollection(limit)
+            limitCollection()
         }
-        function limitCollection(limit = 250){
+        function limitCollection(){
             do {
                 let keys = Object.keys(collection).sort()
                 if (keys.length >= limit){
@@ -300,16 +364,16 @@
                 }
             } while (false)
         }
-        function get(){
-            collection = JSON.parse(localStorage.getItem(path) ?? '{}')
-            return collection
+        function get(key){
+            if (typeof key == 'undefined') return collection
+            return collection[key]
         }
         function clear(){
             collection = {}
             save()
         }
 
-        return { collection, save, insert, get, limitCollection, clear }
+        return { save, insert, get, clear }
     }
     function PromptHistoryView(){
         styles`
@@ -590,7 +654,62 @@
             getCodemirror, showHints, useHints, loadLibs, render
         }
     }
-
+    async function Firebase(config){
+        const FB_CDN = 'https://www.gstatic.com/firebasejs/10.12.2/'
+        const App = await import(FB_CDN + 'firebase-app.js')
+        const DB = await import(FB_CDN + 'firebase-database.js')
+    
+        let app, db
+    
+        if (typeof config != 'object') return
+        if (Object.keys(config) < 3) return
+    
+        try {
+            app = App.initializeApp(config)
+            db = DB.getDatabase(app)
+            console.log('connected to firebase')
+        } catch (e) {
+            console.log(e)
+            return
+        }
+    
+        function initCollection(path, options){
+            const onChange = options.onChange ?? function(){}
+            const onChildAdded = options.onChildAdded ?? function(){}
+            const onChildChanged = options.onChildChanged ?? function(){}
+            const onChildRemoved = options.onChildRemoved ?? function(){} 
+    
+            const limit = options.limit ?? 100
+            const onlyOnce = options.onlyOnce ?? true
+    
+            const collectionRef = DB.ref(db, path)
+            const lastHistory = DB.query(collectionRef, DB.limitToLast(limit))
+    
+            DB.onValue(lastHistory, (snapshot) => {
+                const values = {}
+                snapshot.forEach((child) => {
+                    values[child.key] = child.val()
+                })
+                onChange(values)
+    
+            }, { onlyOnce })
+    
+            DB.onChildAdded(lastHistory, data => onChildAdded(data))
+            DB.onChildChanged(lastHistory, data => onChildChanged(data))
+            DB.onChildRemoved(lastHistory, data => onChildRemoved(data))
+    
+            function insert(key, data){
+                const collectionRef = DB.ref(db, path + key)
+                DB.set(collectionRef, data)
+            }
+    
+            return { 
+                path, limit, onlyOnce, insert 
+            }
+        }
+    
+        return { config, initCollection }
+    }
 
     async function loadTxtList(url){
         return await fetch(url).then(data => data.text()).then(text => txtToList(text))
