@@ -541,48 +541,45 @@
 
         function useHints(newHints, newLimit = 100){
             
-            if (hints) {            
-                hints = newHints
-                limit = newLimit
-
-                return
+            if (!hints) {            
+                let style = `.CodeMirror-hints { z-index: 100!important; }`
+    
+                if (isMobile){
+                    style += `
+                        .CodeMirror-hint {
+                            padding-top: 1ch;
+                            padding-bottom: 1ch;
+                            border-bottom: 1px solid black;    
+                        }
+                    `
+                    codemirror.on('change', (editor, changes) => {
+                        const key = changes.text?.pop()
+                        if (changes.origin !== '+input') return
+                        if (editor.state.completionActive) return 
+                        if (key.toString().trim().length !== 1) return
+                            
+                        showHints()
+                    })
+    
+                } else {
+                    // https://stackoverflow.com/questions/13744176/codemirror-autocomplete-after-any-keyup
+                    codemirror.on('keyup', (editor, event) => {    
+                        if (editor.state.completionActive) return 
+                        if (event.key.toString().trim().length !== 1) return
+    
+                        showHints()
+                    })
+                }
+    
+                codemirror.addKeyMap({
+                    'Ctrl-Space': () => showHints()
+                })
+    
+                styles(style)
             }
 
-            let style = `.CodeMirror-hints { z-index: 100!important; }`
-
-            if (isMobile){
-                style += `
-                    .CodeMirror-hint {
-                        padding-top: 1ch;
-                        padding-bottom: 1ch;
-                        border-bottom: 1px solid black;    
-                    }
-                `
-                codemirror.on('change', (editor, changes) => {
-                    const key = changes.text?.pop()
-                    if (changes.origin !== '+input') return
-                    if (editor.state.completionActive) return 
-                    if (key.toString().trim().length !== 1) return
-                        
-                    showHints()
-                })
-
-            } else {
-                // https://stackoverflow.com/questions/13744176/codemirror-autocomplete-after-any-keyup
-                codemirror.on('keyup', (editor, event) => {    
-                    if (editor.state.completionActive) return 
-                    if (event.key.toString().trim().length !== 1) return
-
-                    showHints()
-                })
-            }
-
-            codemirror.addKeyMap({
-                'Ctrl-Space': () => showHints()
-            })
-
-            styles(style)
-
+            hints = newHints
+            limit = newLimit
         }
 
         function getCodemirror(){
