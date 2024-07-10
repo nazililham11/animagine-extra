@@ -131,7 +131,7 @@
         importFirebaseBtn.onclick = () => {
             inputFile((data) => {
                 const fbCred = JSON.parse(data)
-                localStorage.setItem('firebase', fbCred)
+                localStorage.setItem('firebase', JSON.stringify(fbCred))
                 console.log('loaded firebase cred,', fbCred)
                 initFirebase()
             }, '.json')
