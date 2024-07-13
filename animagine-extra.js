@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Animagine Extra
 // @namespace    https://github.com/nazililham11/animagine-extra
-// @version      0.1.2
+// @version      0.1.3
 // @description  Additional features for Animagine Space
 // @author       nazililham11
 // @downloadURL  https://raw.githubusercontent.com/nazililham11/animagine-extra/main/animagine-extra.js
@@ -40,7 +40,6 @@
 
 
     const animagine = Animagine()
-    const isMobile = isMobileBrowser()
 
     animagine.onPageLoaded(() => main())
 
@@ -59,7 +58,6 @@
         animagine.onRefreshUI(() => {
             editor.getCodemirror().setValue(animagine.prompt.value ?? '')
             editor.getCodemirror().save()
-            editor.getCodemirror().getDoc().clearHistory()
 
             setTimeout(() => {
                 editor.getCodemirror().focus()
@@ -208,9 +206,6 @@
         }
         function applyCustomUI(){
             el(".gradio-container").style['max-width'] = '100%'
-            el("#duplicate-button").style.display = 'none'
-            el("#subtitle").style.display = 'none'
-            el("#title").style.display = 'none'
             el("#component-0").style.padding = '0'
             el("#component-0").style['max-width'] = '100%'
             // el("#component-5").style['flex-grow'] = '3'
@@ -229,9 +224,9 @@
         }
         function fillInputs(data, defaultIfNull = false){
             for (const key in props){
-                if (!hasProperty(data, key) && defaultIfNull) {
+                if (!Object.hasOwn(data, key) && defaultIfNull) {
                     props[key].value = defaultValue[key]
-                } else if (hasProperty(data, key)) {
+                } else if (Object.hasOwn(data, key)) {
                     props[key].value = data[key]
                 }
             }
@@ -287,7 +282,7 @@
             localStorage.setItem(path, JSON.stringify(collection))
         }
         function insert(key, data) {
-            if (hasProperty(collection, key)) return
+            if (Object.hasOwn(collection, key)) return
             collection[key] = data
             limitCollection(limit)
         }
@@ -445,6 +440,8 @@
 
         let codemirror, hints, limit
         let libsLoaded = loadLibs()
+        
+        const isMobile = isMobileBrowser()
 
         const defaultConfig = {
             lineNumbers: true,
@@ -687,15 +684,12 @@
     function el(query) {
         return document.querySelector(query)
     }
-    function hasProperty(object, key) {
-        return key in object
-    }
     function isMobileBrowser(){
-        const phones = [
-            'phone', 'pad', 'pod', 'iPhone', 'iPod', 'ios', 'iPad', 'Android', 
-            'Mobile', 'BlackBerry', 'IEMobile', 'MQQBrowser', 'JUC', 'Fennec', 
-            'wOSBrowser', 'BrowserNG', 'WebOS', 'Symbian', 'Windows Phone', 
-        ]
+        const phones = 'phone|pad|pod|iPhone|iPod|ios|iPad|Android' +
+            'Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec' +
+            'wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone'
+            .split('|')
+        
         for (const phone of phones){
             if (navigator.userAgent.indexOf(phone) > -1) return true
         }
