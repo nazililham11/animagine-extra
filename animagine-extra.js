@@ -168,9 +168,8 @@
 
         animagine.refreshUI()
 
-        function insertNewHistory(data){
-            const key = currentDate()
-
+        function insertNewHistory(key, data){
+            
             localCollection.insert(key, data)
             localCollection.save()
             historyView.insert({ ...data, date: key })
@@ -183,8 +182,9 @@
                 prompt, negative_prompt, quality, 
                 style, aspec_ratio, upscaler 
             } = animagine.readInputs()
-
-            insertNewHistory({ 
+            
+            const key = currentDate()
+            insertNewHistory(key, { 
                 prompt, negative_prompt, quality, 
                 style, aspec_ratio, upscaler
             })
@@ -205,6 +205,8 @@
             let onChangeRechieved = false
             const historyCollection = firebase.initCollection('/animagine/history/', {
                 onChange: (snapshot) => {
+                    console.log(Object.keys(snapshot).length, 'history recieved from firebase')
+
                     // Merge with local data
                     for (const date in snapshot){
                         localCollection.insert(date, snapshot[date])
@@ -239,10 +241,12 @@
             // hijack the insertNewHistory function
             const _insertNewHistory = insertNewHistory
             insertNewHistory = (key, data) => {
+                console.log('saved to firebase', key)
                 historyCollection.insert(key, data)
                 _insertNewHistory(key, data)
             }
         }
+        initFirebase()
     }
 
     function Animagine(){
