@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Animagine Extra
 // @namespace    https://github.com/nazililham11/animagine-extra
-// @version      0.1.3
+// @version      0.1.4
 // @description  Additional features for Animagine Space
 // @author       nazililham11
 // @downloadURL  https://raw.githubusercontent.com/nazililham11/animagine-extra/main/animagine-extra.js
@@ -313,8 +313,8 @@
                 position: absolute;
                 z-index: 90;
                 display: grid;
-                height: 100%;
-                min-height: 100vh;
+                height: auto;
+                min-height: 100%;
                 width: 100%;
                 max-width: 100%;
                 grid-template-columns: repeat(1, minmax(0, 1fr));
