@@ -52,7 +52,7 @@
         editor.getCodemirror().on('keyup', () => {
             animagine.prompt.value = sanitaizePrompts(editor.getCodemirror().getValue())
         })
-        editor.getCodemirror().addKeyMap({ 
+        editor.getCodemirror().addKeyMap({
             'Ctrl-Enter': () => animagine.generate()
         })
         animagine.onRefreshUI(() => {
@@ -63,7 +63,7 @@
                 editor.getCodemirror().focus()
                 editor.getCodemirror().refresh()
             }, 0);
-        }) 
+        })
 
         const textareaStyles = window.getComputedStyle(animagine.element.prompt)
         const editorElement = editor.getCodemirror().getWrapperElement()
@@ -75,7 +75,7 @@
         editorScrollElement.setAttribute('style', 'overflow-x: auto!important;')
 
 
-        
+
 
         let hints = []
         function appendHints(_hints){
@@ -90,7 +90,7 @@
         const localHint = localStorage.getItem('hints')
         if (localHint){
             appendHints(txtToList(localHint))
-        } 
+        }
         if (HINTS_URL.length) {
             for (const url of HINTS_URL){
                 appendHints(await loadTxtList(url))
@@ -116,7 +116,7 @@
         historyBtn.onclick = () => historyView.show()
 
         const importBtn = animagine.createButton()
-        importBtn.innerText = 'Import Hint'
+        importBtn.innerText = 'Import Hint (.txt)'
         importBtn.onclick = () => {
             inputFile((text) => {
                 appendHints(txtToList(text))
@@ -147,7 +147,7 @@
         const itemsObj = localCollection.get()
         const itemsArr = Object.keys(itemsObj).sort()
             .map(key => ({ ...itemsObj[key], date: key}))
-            
+
         if (itemsArr.length > 0){
             itemsArr.forEach(item => historyView.insert(item))
             animagine.fillInputs(itemsArr.pop())
@@ -166,13 +166,13 @@
         animagine.onGenerate(() => {
             animagine.prompt.value = editor.getCodemirror().getValue()
 
-            const { 
-                prompt, negative_prompt, quality, 
-                style, aspec_ratio, upscaler 
+            const {
+                prompt, negative_prompt, quality,
+                style, aspec_ratio, upscaler
             } = animagine.readInputs()
 
-            insertNewHistory({ 
-                prompt, negative_prompt, quality, 
+            insertNewHistory({
+                prompt, negative_prompt, quality,
                 style, aspec_ratio, upscaler
             })
         })
@@ -240,8 +240,8 @@
         }
         function onPageLoaded(callback){
             const scan = setInterval(() => {
-                if (!el("#component-0")) return 
-                if (typeof gradio_config != 'object') return 
+                if (!el("#component-0")) return
+                if (typeof gradio_config != 'object') return
 
                 clearInterval(scan)
                 defaultValue = readInputs()
@@ -269,14 +269,14 @@
             ...props, defaultValue, element,
 
             applyCustomUI, refreshUI, onRefreshUI,
-            fillInputs, readInputs, 
-            onPageLoaded, 
+            fillInputs, readInputs,
+            onPageLoaded,
             generate, onGenerate,
-            createButton, 
+            createButton,
         }
     }
     function LocalCollection(path, limit = 250){
-        let collection = {}
+        let collection = JSON.parse(localStorage.getItem(path) ?? '{}')
 
         function save(){
             localStorage.setItem(path, JSON.stringify(collection))
@@ -284,27 +284,27 @@
         function insert(key, data) {
             if (Object.hasOwn(collection, key)) return
             collection[key] = data
-            limitCollection(limit)
+            limitCollection()
         }
-        function limitCollection(limit = 250){
+        function limitCollection(){
             do {
                 let keys = Object.keys(collection).sort()
                 if (keys.length >= limit){
                     delete collection[keys.shift()]
-                    continue   
+                    continue
                 }
             } while (false)
         }
-        function get(){
-            collection = JSON.parse(localStorage.getItem(path) ?? '{}')
-            return collection
+        function get(key){
+            if (typeof key == 'undefined') return collection
+            return collection[key]
         }
         function clear(){
             collection = {}
             save()
         }
 
-        return { collection, save, insert, get, limitCollection, clear }
+        return { save, insert, get, clear }
     }
     function PromptHistoryView(){
         styles`
@@ -329,7 +329,7 @@
                 box-sizing: border-box;
             }
             @media (min-width: 640px) {
-                .history-container { 
+                .history-container {
                     grid-template-columns: repeat(2, minmax(0, 1fr));
                 }
             }
@@ -404,10 +404,10 @@
             item.onclick = () => onClick(data)
             item.innerHTML = `
                 <div class="info">
-                    <span>${timeStr}</span> | 
-                    <span>${data.aspec_ratio}</span> | 
-                    <span>${data.style}</span> | 
-                    <span>${data.quality}</span> | 
+                    <span>${timeStr}</span> |
+                    <span>${data.aspec_ratio}</span> |
+                    <span>${data.style}</span> |
+                    <span>${data.quality}</span> |
                     <span>${data.upscaler ? 'Upscaled':'Normal'}</span>
                 </div>
                 <p class="positive">${(data.prompt + '').replaceAll('\n', '<br>')}</p>
@@ -440,13 +440,13 @@
 
         let codemirror, hints, limit
         let libsLoaded = loadLibs()
-        
+
         const isMobile = isMobileBrowser()
 
         const defaultConfig = {
             lineNumbers: true,
             indentUnit: 4,
-            extraKeys: { 
+            extraKeys: {
                 'Alt-Up': 'swapLineUp',
                 'Alt-Down': 'swapLineDown',
             },
@@ -461,7 +461,7 @@
         }
 
         config = { ...defaultConfig,  ...(config ?? {}) }
-        
+
         async function render(element){
             await libsLoaded
 
@@ -471,7 +471,7 @@
                 const textarea = document.createElement('textarea')
                 element.append(textarea)
                 codemirror = CodeMirror.fromTextArea(textarea, config)
-            }    
+            }
         }
 
         async function loadLibs(){
@@ -528,7 +528,7 @@
                         return 0
                     }).slice(0, limit)
 
-                return { 
+                return {
                     list: list,
                     from: CodeMirror.Pos(cursor.line, start),
                     to: CodeMirror.Pos(cursor.line, end)
@@ -537,41 +537,41 @@
         }
 
         function useHints(newHints, newLimit = 100){
-            
-            if (!hints) {            
+
+            if (!hints) {
                 let style = `.CodeMirror-hints { z-index: 100!important; }`
-    
+
                 if (isMobile){
                     style += `
                         .CodeMirror-hint {
                             padding-top: 1ch;
                             padding-bottom: 1ch;
-                            border-bottom: 1px solid black;    
+                            border-bottom: 1px solid black;
                         }
                     `
                     codemirror.on('change', (editor, changes) => {
                         const key = changes.text?.pop()
                         if (changes.origin !== '+input') return
-                        if (editor.state.completionActive) return 
+                        if (editor.state.completionActive) return
                         if (key.toString().trim().length !== 1) return
-                            
+
                         showHints()
                     })
-    
+
                 } else {
                     // https://stackoverflow.com/questions/13744176/codemirror-autocomplete-after-any-keyup
-                    codemirror.on('keyup', (editor, event) => {    
-                        if (editor.state.completionActive) return 
+                    codemirror.on('keyup', (editor, event) => {
+                        if (editor.state.completionActive) return
                         if (event.key.toString().trim().length !== 1) return
-    
+
                         showHints()
                     })
                 }
-    
+
                 codemirror.addKeyMap({
                     'Ctrl-Space': () => showHints()
                 })
-    
+
                 styles(style)
             }
 
@@ -608,8 +608,8 @@
         const dateStr = [
             date.getFullYear(),
             zeroLead((date.getMonth() + 1), 2),
-            zeroLead(date.getDate(), 2) 
-        ].join('-') 
+            zeroLead(date.getDate(), 2)
+        ].join('-')
 
         const timeStr = [
             zeroLead(date.getHours(), 2),
@@ -685,11 +685,12 @@
         return document.querySelector(query)
     }
     function isMobileBrowser(){
-        const phones = 'phone|pad|pod|iPhone|iPod|ios|iPad|Android' +
-            'Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec' +
-            'wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone'
-            .split('|')
-        
+        const phones = [
+            'phone|pad|pod|iPhone|iPod|ios|iPad|Android',
+            'Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec',
+            'wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone',
+        ].join('|').split('|')
+
         for (const phone of phones){
             if (navigator.userAgent.indexOf(phone) > -1) return true
         }
