@@ -3,7 +3,8 @@ import { Animagine } from './animagine'
 import * as Firebase from './firebase'
 import { LocalCollection } from './local-collection'
 import {
-    loadTxtList, txtToList, currentDate, sanitaizePrompts, inputFile, createEl, el, objectExtract, loadExternal
+    loadTxtList, txtToList, currentDate, sanitaizePrompts, inputFile, 
+    createEl, el, objectExtract, findStringBetween
 } from './utils'
 import { App as HistoryView } from './view'
 import { Editor } from './editor'
@@ -43,6 +44,7 @@ const EDITOR_CONFIG = {
 // datetime : used as primary key
 const STORED_HISTORY_PROPS = 'prompt|negative_prompt|quality|style|aspec_ratio|upscaler|usage'.split('|')
 
+const FIREBASE_CONFIG = {}
 
 // 
 // Main
@@ -82,7 +84,7 @@ async function main(){
     function firebaseUpdateHistory(){}
 
     async function initFirebase(){
-        const firebaseCred = localStorage.getItem('firebase')
+        const firebaseCred = localStorage.getItem('firebase') ?? FIREBASE_CONFIG
         await Firebase.initFirebase(JSON.parse(firebaseCred))
 
         historyCollection = await Firebase.initCollection('/animagine/history/', {
@@ -198,6 +200,30 @@ async function main(){
         }, '.json'))
         .get()
 
+    const paramFromImg = createEl('button')
+        .text('Import Parameters From Image (*.png)')
+        .copyClassFrom(animagine.element.generate)
+        .on('click', () => inputFile((text) => {
+            const paramStr = findStringBetween(text, ['{"prompt":', '"Model hash"', '"}}'])
+            const param = JSON.parse(paramStr)
+            const result = {
+                prompt          : param.prompt,
+                negative_prompt : param.negative_prompt,
+                quality         : param.sdxl_style,
+                style           : param.quality_tags,
+                aspec_ratio     : param.resolution,
+                upscaler        : param.use_upscaler,
+            }
+            console.log('loaded image parameters,', result)
+            
+            editor.set(result.prompt)
+            result.prompt = sanitaizePrompts(result.prompt)
+
+            animagine.fillInputs(result)
+            animagine.refreshUI()
+        }, '.png'))
+        .get()
+
     const toggleThemeBtn = createEl('button')
         .text('Toggle Theme')
         .copyClassFrom(animagine.element.generate)
@@ -209,11 +235,12 @@ async function main(){
     animagine.element.txtToImgTab.append(importHintsBtn)
     animagine.element.txtToImgTab.append(importCredBtn)
     animagine.element.txtToImgTab.append(toggleThemeBtn)
+    animagine.element.txtToImgTab.append(paramFromImg)
 
 
     animagine.on('generate', () => {
         const key = currentDate()
-        const data = objectExtract(animagine.readInputs(), STORED_HISTORY_PROPS)
+        const data = objectExtract(animagine.readInputs(), STORED_HISTORY_PROPS, true)
         data.prompt = editor.value()
 
         localCollection.insert(key, data).save()

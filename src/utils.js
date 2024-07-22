@@ -222,10 +222,26 @@ export function createEl(tagName){
 export function queryEl(query){
     return el(document.querySelector(query))
 }
-export function objectExtract(obj, keys){
+export function objectExtract(obj, keys, excludeNull){
     const result = {}
     for (const key of keys){
+        if (excludeNull && typeof obj[key] === 'undefined') continue
         result[key] = obj[key]
     }
     return result
+}
+export function findStringBetween(str, strings){
+    if (!Array.isArray(strings)) return str
+    if (strings < 2) return str
+
+    let start = str.indexOf(strings.shift())
+    let end = null
+    for (const s of strings){
+        if (isNaN(end)){
+            end = str.indexOf(s, start)
+        } else {
+            end = str.indexOf(s, end)
+        }
+    }
+    return str.substring(start, end + strings.pop().length)
 }
