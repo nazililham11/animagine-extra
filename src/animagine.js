@@ -1,5 +1,9 @@
 import { queryEl } from './utils'
 
+// 
+// Animagine
+// 
+
 export function Animagine(){
 
     let defaultValue = {}

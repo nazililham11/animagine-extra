@@ -8,6 +8,11 @@ import {
 import { App as HistoryView } from './view'
 import { Editor } from './editor'
 
+
+// 
+// Config
+// 
+
 const MAX_VISIBLE_HINTS = 100
 const HINTS_URL = [
     'https://huggingface.co/spaces/cagliostrolab/animagine-xl-3.1/raw/main/wildcard/characterfull.txt',
@@ -36,12 +41,16 @@ const EDITOR_CONFIG = {
 
 // usage : how many data clicked on history
 // datetime : used as primary key
-const STORED_HISTORY_PROPS = 'prompt|negative_prompt|quality|style|aspec_ratio|upscaler'.split('|')
+const STORED_HISTORY_PROPS = 'prompt|negative_prompt|quality|style|aspec_ratio|upscaler|usage'.split('|')
+
+
+// 
+// Main
+// 
+
 
 const animagine = Animagine()
-
 animagine.on('load', () => main())
-
 
 async function main(){
 
@@ -70,6 +79,7 @@ async function main(){
 
     let historyCollection
     function firebaseInsertHistory(){}
+    function firebaseUpdateHistory(){}
 
     async function initFirebase(){
         const firebaseCred = localStorage.getItem('firebase')
@@ -78,9 +88,11 @@ async function main(){
         historyCollection = await Firebase.initCollection('/animagine/history/', {
             limit: MAX_SAVED_HISTORY,
             onChildAdded: (data) => {
-                if (data.key in localCollection.get()) return
-
-                localCollection.insert(data.key, data.val()).save()
+                if (data.key in localCollection.get()) {
+                    localCollection.get()[data.key] = data.val()
+                } else {
+                    localCollection.insert(data.key, data.val()).save()
+                }
                 notifyHistoryChanged()
             }
         })
@@ -88,6 +100,10 @@ async function main(){
         firebaseInsertHistory = (key, data) => {
             historyCollection.insert(key, data)
             console.log('saved to firebase', key)
+        }
+        firebaseUpdateHistory = (key, data) => {
+            historyCollection.update(key, data)
+            console.log('updated to firebase', key, data)
         }
     }
 
@@ -150,6 +166,8 @@ async function main(){
 
         localCollection.get()[data.date].usage = data.usage
         localCollection.save()
+
+        firebaseUpdateHistory(data.date, objectExtract(data, STORED_HISTORY_PROPS))
     })
 
 

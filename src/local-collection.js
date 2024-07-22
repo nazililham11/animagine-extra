@@ -17,6 +17,7 @@ export function LocalCollection(path, limit = 250){
         do {
             let keys = Object.keys(collection).sort()
             if (keys.length >= limit){
+                if (collection[keys.shift()].usage) continue
                 delete collection[keys.shift()]
                 continue
             }

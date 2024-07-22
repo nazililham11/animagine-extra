@@ -1,3 +1,7 @@
+// 
+// Utils
+// 
+
 export async function loadTxtList(url){
     return await fetch(url).then(data => data.text()).then(text => txtToList(text))
 }
@@ -120,9 +124,7 @@ export function stringLimit(string, options = {}){
         sliced = true
     }
     if (sliced){
-        string = string +
-
-         (options.endStr ?? '...')
+        string = string + (options.endStr ?? '...')
     }
 
     return string

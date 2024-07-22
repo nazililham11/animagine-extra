@@ -1,5 +1,9 @@
 import { stringLimit, groupBy, getTimeStr, sort, createEl, el, appendStyle, loadExternal } from './utils'
 
+// 
+// History View
+// 
+
 export async function App(){
 
     loadExternal('https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css')
@@ -42,8 +46,7 @@ export async function App(){
             })
         }
         if (sortCmd){
-            sortCmd = (isAscending ? '' : '-') + sortCmd
-            result = sort(result, sortCmd)
+            result = sort(result, (isAscending ? '' : '-') + sortCmd)
         }
 
         result = result.slice(0, MAX_VISIBLE_HISTORY)
@@ -101,7 +104,7 @@ export async function App(){
         },
         components: { Dropdown },
         template: `
-            <div class="row g-3">
+            <div class="row m-0 g-3 w-100">
                 <div class="col-sm-6 col-12 row align-items-end gap-sm-3 gap-2">
                     <label class="col-auto form-check form-switch my-auto d-flex
                             flex-column align-items-end text-secondary text-small">
@@ -139,14 +142,15 @@ export async function App(){
             return { onClick, limitOpt, timeStr, prompt, negative_prompt }
         },
         template: `
-            <button class="card position-relative p-0 history-item"
+            <button class="card position-relative p-0 btn btn-link 
+                    text-decoration-none history-item"
                 @click="e => e.stopImmediatePropagation() || onClick()">
                 <div class="card-header">
-                    <small class="me-1 mb-1 text-base badge border">{{ timeStr }}</small>
-                    <small class="me-1 mb-1 text-base badge border">{{ data.aspec_ratio }}</small>
-                    <small class="me-1 mb-1 text-base badge border">{{ data.style }}</small>
-                    <small class="me-1 mb-1 text-base badge border">{{ data.quality }}</small>
-                    <small class="me-1 mb-1 text-base badge border border-success"
+                    <small class="me-1 mb-1 badge border">{{ timeStr }}</small>
+                    <small class="me-1 mb-1 badge border">{{ data.aspec_ratio }}</small>
+                    <small class="me-1 mb-1 badge border">{{ data.style }}</small>
+                    <small class="me-1 mb-1 badge border">{{ data.quality }}</small>
+                    <small class="me-1 mb-1 badge border border-success"
                         v-show="data.upscaler">Upscaled</small>
                 </div>
                 <div class="card-body d-flex flex-wrap">
@@ -162,42 +166,42 @@ export async function App(){
         `
     }
 
-    const HistoryView = {
+    const HistoryList = {
         setup(){
             const historyList = computed(() => Data.showedHistory)
             const onExit = () => hide()
             return { historyList, onExit }
         },
-        components: { HistoryItem, Header },
+        components: { HistoryItem },
         template: `
-            <div class="row g-4">
-                <div class="col-12">
-                    <Header/>
+            <template v-for="_group of historyList" :key="_group.title">
+                <button class="col-12 text-start mt-4 text-base btn btn-link 
+                        text-decoration-none fs-5 border-bottom"
+                    v-show="(_group.title + '').length"
+                    @click="_group.hide = !_group.hide">
+                    {{ _group.hide ? '&#x25B8;' : '&#x25BE;' }}
+                    {{ _group.title }} ({{ _group.data.length }})
+                </button>
+                <div class="col-lg-3 col-md-4 col-sm-6 col-12" v-show="!_group.hide"
+                    v-for="_history of _group.data" :key="_history.date">
+                    <HistoryItem :data="_history" />
                 </div>
-
-                <template v-for="_group of historyList" :key="_group.title">
-                    <h4 class="col-12 text-start mt-4 text-primary btn"
-                        v-show="(_group.title + '').length"
-                        @click="_group.hide = !_group.hide">
-                        {{ _group.hide ? '&#x25B8;' : '&#x25BE;' }}
-                        {{ _group.title }} ({{ _group.data.length }})
-                    </h4>
-                    <div class="col-lg-3 col-md-4 col-sm-6 col-12" v-show="!_group.hide"
-                        v-for="_history of _group.data" :key="_history.date">
-                        <HistoryItem :data="_history" />
-                    </div>
-                </template>
-            </div>
+            </template>
         `
     }
 
     const App = {
-        components: { HistoryView },
+        components: { HistoryList, Header },
         template : `
-            <div class="modal-dialog modal-fullscreen">
+            <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
                 <div class="modal-content">
+                    <div class="modal-header">
+                        <Header/>
+                    </div>
                     <div class="modal-body">
-                        <HistoryView/>
+                        <div class="row g-4">    
+                            <HistoryList/>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -215,12 +219,8 @@ export async function App(){
         .history-item:hover {
             border-color: rgba(var(--bs-primary-rgb),var(--bs-border-opacity))!important;
         }
-        .text-base {
-            color: var(--bs-body-color);
-        }
-        .text-small {
-            font-size: .75em;
-        }
+        .text-base { color: var(--bs-body-color); }
+        .text-small { font-size: .75em; }
     `)
 
 

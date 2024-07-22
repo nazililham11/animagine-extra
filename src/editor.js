@@ -1,5 +1,9 @@
 import { isMobileBrowser, loadExternal, appendStyle } from './utils'
 
+// 
+// Editor
+// 
+
 export function Editor(config){
 
     const CM_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/'
