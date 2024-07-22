@@ -82,15 +82,18 @@ export function Animagine(){
     function generate(){
         element.generate.click()
     }
+    function isDarkMode(){
+        return document.body.classList.contains('dark')
+    }
     function toggleDarkMode(state){
-        const isDark = document.body.classList.contains('dark')
-        state = state ?? !isDark
+        state = state ?? !isDarkMode()
         document.body.classList.toggle('dark', state)
         refreshUI()
         applyCustomUI()
     }
     return {
         ...props, defaultValue, element,
-        on, applyCustomUI, refreshUI, fillInputs, readInputs, generate, toggleDarkMode
+        on, applyCustomUI, refreshUI, fillInputs, readInputs, generate,
+        toggleDarkMode, isDarkMode
     }
 }

@@ -1,6 +1,8 @@
-import { appendStyle, stringLimit, groupBy, getTimeStr, sort, createEl } from './utils'
+import { stringLimit, groupBy, getTimeStr, sort, createEl, el, appendStyle, loadExternal } from './utils'
 
 export async function App(){
+
+    loadExternal('https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css')
 
     const VUE_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.32/vue.esm-browser.min.js'
     const { createApp, ref, computed, reactive } = await import(VUE_CDN)
@@ -17,28 +19,6 @@ export async function App(){
     let searchBoxFocus = function(){}
     let itemOnClickCallback = function(){}
 
-    function on(eventKey, callback) {
-        if (eventKey === 'itemOnClick') itemOnClickCallback = callback
-    }
-    function itemOnClick(data){
-        data['usage'] = (data['usage'] ?? 0) + 1
-        itemOnClickCallback(data)
-    }
-    function show(){
-        container.classList.toggle('hidden', false)
-        searchBoxFocus()
-    }
-    function hide(){
-        container.classList.toggle('hidden', true)
-    }
-    function setHistory(historyList) {
-        Data.historyList = historyList
-        renderHistory()
-    }
-    function addHistory(history) {
-        Data.historyList.push(history)
-        renderHistory()
-    }
 
     let currentSortCmd = sortByChoices[0]
     let currentIsAscending = false
@@ -84,17 +64,33 @@ export async function App(){
         });
     }
 
+    const Dropdown = {
+        props: ['items', 'label'],
+        emits: ['onChange'],
+        template: `
+            <label class="col">
+                <small class="text-secondary text-small">{{ label }}</small>
+                <select class="form-control form-control-sm"
+                    @change="e => $emit('onChange', e.target.value)">
+                    <option v-for="_item of items" :key="_item.value" :value="_item.value">
+                        {{ _item.title }}
+                    </option>
+                </select>
+            </label>
+        `
+    }
+
     const Header = {
         setup(){
             const search = ref(null)
             const onExit = () => hide()
             const onSearch = () => renderHistory(null, null, null, search.value.value)
-            const onReset = () => renderHistory('date', null, 'date', '')
-            const sortOnChange = (propKey) => renderHistory(propKey, null, null, null)
+            const onReset = () => renderHistory(sortByChoices[0], false, groupByChoices[0], '')
+            const sortOnChange = (sortCmd) => renderHistory(sortCmd, null, null, null)
             const groupOnChange = (propKey) => renderHistory(null, null, propKey, null)
             const ascendingOnChange = (state) => renderHistory(null, state, null, null)
-            const sortChoices = sortByChoices
-            const groupChoices = groupByChoices
+            const sortChoices = sortByChoices.map(s => ({ title: s.split(':').pop(), value: s }))
+            const groupChoices = groupByChoices.map(s => ({ title: s, value: s }))
 
             searchBoxFocus = () => search.value.focus()
 
@@ -103,26 +99,27 @@ export async function App(){
                 onSearch, onReset , onExit, sortOnChange, groupOnChange, ascendingOnChange
             }
         },
+        components: { Dropdown },
         template: `
-            <div class="header">
-                <select @change="e => sortOnChange(e.target.value)">
-                    <option v-for="_sort of sortChoices" :key="_sort" :value="_sort">
-                        {{ _sort.split(':').pop() }}
-                    </option>
-                </select>
-                <select @change="e => groupOnChange(e.target.value)">
-                    <option v-for="_group of groupChoices" :key="_group" :value="_group">
-                        {{ _group }}
-                    </option>
-                </select>
-                <label style="display: flex;">
-                    <input type="checkbox" @change="e => ascendingOnChange(e.target.checked)">
-                    <span>ASC</span>
-                </label>
-                <input type="text" ref="search" placeholder="Search" @keyup.enter="onSearch">
-                <button @click="onSearch">Search</button>
-                <button @click="onReset">Reset</button>
-                <button @click="onExit">Exit</button>
+            <div class="row g-3">
+                <div class="col-sm-6 col-12 row align-items-end gap-sm-3 gap-2">
+                    <label class="col-auto form-check form-switch my-auto d-flex
+                            flex-column align-items-end text-secondary text-small">
+                        Asc
+                        <input class="form-check-input" type="checkbox"
+                            @change="e => ascendingOnChange(e.target.checked)">
+                    </label>
+                    <Dropdown label="Sort By" :items="sortChoices" @onChange="sortOnChange"/>
+                    <Dropdown label="Group By" :items="groupChoices" @onChange="groupOnChange"/>
+                </div>
+
+                <div class="col-sm-6 col-12 d-flex align-items-end gap-sm-3 gap-2">
+                    <input type="text" class="form-control form-control-sm flex-fill"
+                        ref="search" placeholder="Search" @keyup.enter="onSearch">
+                    <button class="btn btn-sm btn-outline-primary" @click="onSearch">Search</button>
+                    <button class="btn btn-sm btn-outline-primary" @click="onReset">Reset</button>
+                    <button class="btn btn-sm btn-outline-primary" @click="onExit">Exit</button>
+                </div>
             </div>
         `
     }
@@ -142,18 +139,26 @@ export async function App(){
             return { onClick, limitOpt, timeStr, prompt, negative_prompt }
         },
         template: `
-            <div class="history-item" @click="e => e.stopImmediatePropagation() || onClick()">
-                <div class="params">
-                    <span>{{ timeStr }}</span>
-                    <span>{{ data.aspec_ratio }}</span>
-                    <span>{{ data.style }}</span>
-                    <span>{{ data.quality }}</span>
-                    <span>{{ data.upscaler ? 'Upscaled' : 'Normal' }}</span>
-                    <span v-show="data.usage">{{ data.usage }}</span>
+            <button class="card position-relative p-0 history-item"
+                @click="e => e.stopImmediatePropagation() || onClick()">
+                <div class="card-header">
+                    <small class="me-1 mb-1 text-base badge border">{{ timeStr }}</small>
+                    <small class="me-1 mb-1 text-base badge border">{{ data.aspec_ratio }}</small>
+                    <small class="me-1 mb-1 text-base badge border">{{ data.style }}</small>
+                    <small class="me-1 mb-1 text-base badge border">{{ data.quality }}</small>
+                    <small class="me-1 mb-1 text-base badge border border-success"
+                        v-show="data.upscaler">Upscaled</small>
                 </div>
-                <p class="positive" v-html="prompt"/>
-                <p class="negative" v-html="negative_prompt"/>
-            </div>
+                <div class="card-body d-flex flex-wrap">
+                    <p class="text-small text-start" v-html="prompt"/>
+                    <p class="text-small text-start text-danger" v-html="negative_prompt"/>
+                </div>
+                <span class="position-absolute top-0 start-100
+                        translate-middle badge rounded-pill bg-danger"
+                    v-show="data.usage">
+                    {{ data.usage }}
+                </span>
+            </button>
         `
     }
 
@@ -165,17 +170,22 @@ export async function App(){
         },
         components: { HistoryItem, Header },
         template: `
-            <div class="history-container"
-                @click="e => e.target.classList.contains('history-container') && onExit()">
-                <Header/>
+            <div class="row g-4">
+                <div class="col-12">
+                    <Header/>
+                </div>
+
                 <template v-for="_group of historyList" :key="_group.title">
-                    <div class="group-header" v-show="(_group.title + '').length"
-                        @click="_group.hide = !(_group.hide === true)">
-                        {{ _group.hide ? '>' : '|' }} {{ _group.title }} ({{ _group.data.length }})
+                    <h4 class="col-12 text-start mt-4 text-primary btn"
+                        v-show="(_group.title + '').length"
+                        @click="_group.hide = !_group.hide">
+                        {{ _group.hide ? '&#x25B8;' : '&#x25BE;' }}
+                        {{ _group.title }} ({{ _group.data.length }})
+                    </h4>
+                    <div class="col-lg-3 col-md-4 col-sm-6 col-12" v-show="!_group.hide"
+                        v-for="_history of _group.data" :key="_history.date">
+                        <HistoryItem :data="_history" />
                     </div>
-                    <template v-for="_history of _group.data" :key="_history.date">
-                        <HistoryItem :data="_history" v-show="!_group.hide"/>
-                    </template>
                 </template>
             </div>
         `
@@ -183,132 +193,64 @@ export async function App(){
 
     const App = {
         components: { HistoryView },
-        template : `<HistoryView/>`
+        template : `
+            <div class="modal-dialog modal-fullscreen">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <HistoryView/>
+                    </div>
+                </div>
+            </div>
+        `
     }
 
-    // TODO: make better styling or use css framworks that doesnt overlap with gradio style
-    const style = `
-        .app-container.hidden { display: none; }
-        .app-container {
-            position: absolute;
-            z-index: 90;
-            height: auto;
-            min-height: 100%;
-            width: 100%;
-            max-width: 100%;
-            background-color: rgb(0 0 0 / 0.85);
-            padding: 2rem;
-            box-sizing: border-box;
-        }
-        .app-container button {
-            text-wrap: nowrap;
-        }
-        /* Container */
-        .history-container.hidden {
-            display: none;
-        }
-        .history-container {
-            display: grid;
-            height: auto;
-            width: 100%;
-            grid-template-columns: repeat(1, minmax(0, 1fr));
-            grid-auto-rows: min-content;
-            gap: 2rem;
-            font-size: 0.75rem;
-            line-height: 1rem;
-            color: rgb(255 255 255);
-            backdrop-filter: blur(8px);
-        }
-        @media (min-width: 640px) {
-            .history-container {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-        @media (min-width: 768px) {
-            .history-container {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-        }
-        @media (min-width: 1024px) {
-            .history-container {
-                grid-template-columns: repeat(4, minmax(0, 1fr));
-            }
-        }
-        @media (min-width: 1536px) {
-            .history-container {
-                grid-template-columns: repeat(5, minmax(0, 1fr));
-            }
-        }
 
-        /* Container's item */
-        .history-container .tab-container {
-            grid-column: 1 / -1;
-            display: flex;
-            gap: 1rem;
-        }
-        .history-container .header input {
-            width: 100%;
-        }
-        .history-container .header {
-            display: flex;
-            width: 100%;
-            grid-column: 1 / -1;
-            gap: 1rem;
-        }
-        .history-container .group-header {
-            grid-column: 1 / -1;
-            font-size: 1rem;
-            line-height: 1.5rem;
-            font-weight: 600;
-        }
-        .history-container .history-item:hover {
-            background-color: rgb(255 255 255 / 0.1);
-        }
-        .history-container .history-item {
-            display: flex;
-            cursor: pointer;
-            flex-direction: column;
-            background-color: rgb(255 255 255 / 0.05);
-            padding: 1rem;
-            gap: 0.5rem;
-        }
+    const container = createEl('div').attrs({ id: 'app', class: 'modal' }).get()
 
-        /* Item */
-        .history-item p {
-            margin: 0;
-        }
-        .history-item .negative {
-            color: rgb(239 68 68 / 0.75);
-        }
-        .history-item .params, .history-item .negative {
-            opacity: 0.75;
-            text-wrap: wrap;
-            max-width: 100%;
-        }
-        .history-item .params {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            align-items: start;
-            justify-items: start;
-        }
-
-        .history-item .params span {
-            text-align: center;
-            padding: 0 1ch;
-            background-color: rgb(0 0 0 / 0.5);
-        }
-    `
-    appendStyle(style)
-
-
-    const container = createEl('div').attrs({ id: 'app', class: 'app-container' }).get()
     document.body.append(container)
 
     createApp(App).mount('#app')
 
+    appendStyle(`
+        .history-item:hover {
+            border-color: rgba(var(--bs-primary-rgb),var(--bs-border-opacity))!important;
+        }
+        .text-base {
+            color: var(--bs-body-color);
+        }
+        .text-small {
+            font-size: .75em;
+        }
+    `)
+
+
+    function on(eventKey, callback) {
+        if (eventKey === 'itemOnClick') itemOnClickCallback = callback
+    }
+    function itemOnClick(data){
+        data['usage'] = (data['usage'] ?? 0) + 1
+        itemOnClickCallback(data)
+    }
+    function show(){
+        container.classList.toggle('d-block', true)
+        searchBoxFocus()
+    }
+    function hide(){
+        container.classList.toggle('d-block', false)
+    }
+    function setHistory(historyList) {
+        Data.historyList = historyList
+        renderHistory()
+    }
+    function addHistory(history) {
+        Data.historyList.push(history)
+        renderHistory()
+    }
+    function setDarkMode(state) {
+        el(container).attrs({ 'data-bs-theme' : state ? 'dark' : 'light' })
+    }
 
     return {
-        show, hide, setHistory, addHistory, on
+        show, hide, setHistory, addHistory, on, setDarkMode
     }
 }

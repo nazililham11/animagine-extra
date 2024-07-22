@@ -153,12 +153,6 @@ async function main(){
     })
 
 
-
-    // function insertNewHistory(key, data){
-    //     historyView.addHistory({ ...data, date: key })
-    // }
-
-
     //
     // Adjusting animagine UI / behavior with the extra features
     //
@@ -175,14 +169,27 @@ async function main(){
         .on('click', () => inputFile((text) => appendHints(txtToList(text)), '.txt'))
         .get()
 
+    const importCredBtn = createEl('button')
+        .text('Import Firebase cred (*.json)')
+        .copyClassFrom(animagine.element.generate)
+        .on('click', () => inputFile((data) => {
+            const fbCred = JSON.parse(data)
+            console.log('loaded firebase cred,', fbCred)
+            localStorage.setItem('firebase', JSON.stringify(fbCred))
+            initFirebase()
+        }, '.json'))
+        .get()
+
     const toggleThemeBtn = createEl('button')
-        .text('Toglle Theme')
+        .text('Toggle Theme')
         .copyClassFrom(animagine.element.generate)
         .on('click', () => animagine.toggleDarkMode())
         .get()
 
+
     animagine.element.txtToImgTab.append(historyBtn)
     animagine.element.txtToImgTab.append(importHintsBtn)
+    animagine.element.txtToImgTab.append(importCredBtn)
     animagine.element.txtToImgTab.append(toggleThemeBtn)
 
 
@@ -200,6 +207,8 @@ async function main(){
         editor.set(animagine.prompt.value ?? '')
         animagine.prompt.value = sanitaizePrompts(animagine.prompt.value)
 
+        historyView.setDarkMode(animagine.isDarkMode())
+
         // Adjust editor style with animagine theme
         el(editor.getCodemirror().getScrollerElement()).styles({'overflow-x': 'auto!important'})
         el(editor.getCodemirror().getWrapperElement())
@@ -214,7 +223,6 @@ async function main(){
 
 
     function notifyHistoryChanged(){
-
         const itemsObj = localCollection.get()
         const itemsArr = Object.keys(itemsObj).sort().map(key => ({ ...itemsObj[key], date: key}))
 
@@ -225,7 +233,6 @@ async function main(){
         if (animagine.prompt.value.length < 1){
             animagine.fillInputs(itemsArr[0])
         }
-
     }
 
     initFirebase()

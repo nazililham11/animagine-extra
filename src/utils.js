@@ -121,7 +121,7 @@ export function stringLimit(string, options = {}){
     }
     if (sliced){
         string = string +
-        
+
          (options.endStr ?? '...')
     }
 
